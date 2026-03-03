@@ -1,0 +1,31 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+.mat-sidenav-container {
+  @apply flex justify-center w-full min-h-screen;
+}
+
+.mat-drawer {
+  width: 300px !important;
+}
+
+.mat-sidenav {
+  @apply bg-gray-800 text-white;
+}
+
+.mat-toolbar {
+  @apply bg-gray-900 text-white;
+}
+
+.mat-nav-list a.mat-list-item {
+  @apply hover:bg-gray-700;
+}
+
+.mat-sidenav-content .mat-toolbar {
+  @apply sticky top-0 z-10 bg-blue-600 text-white;
+}
+
+.content {
+  @apply p-4;
+}

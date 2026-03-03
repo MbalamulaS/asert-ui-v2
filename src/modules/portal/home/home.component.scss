@@ -1,0 +1,42 @@
+/* Custom styles for the landing page */
+
+:host {
+  display: block;
+  width: 100%;
+}
+
+.hero-slide {
+  transition: opacity 0.5s ease-in-out;
+}
+
+/* Style for the grid navigation items */
+.grid-nav-item {
+  min-height: 120px;
+  transition: all 0.2s ease-in-out;
+
+  &:hover {
+    background-color: rgba(0, 0, 0, 0.05);
+
+    .icon-container {
+      transform: scale(1.1);
+    }
+  }
+
+  .icon-container {
+    transition: transform 0.2s ease-in-out;
+  }
+}
+
+/* Ensure the hero section has proper height on different screens */
+@media (max-width: 768px) {
+  .hero-section {
+    height: 400px;
+  }
+}
+
+/* Adjust navigation grid for mobile */
+@media (max-width: 640px) {
+  .nav-grid {
+    grid-template-columns: repeat(2, 1fr);
+  }
+}

@@ -1,0 +1,479 @@
+<div class="container mx-auto px-4 py-6">
+  <div *ngIf="isLoading" class="text-center py-10">
+    <mat-icon
+      class="animate-spin h-8 w-8 text-blue-600 mx-auto"
+      aria-hidden="true"
+      >refresh</mat-icon
+    >
+    <p class="mt-2 text-gray-600">Loading form...</p>
+  </div>
+
+  <div
+    *ngIf="!isLoading && !form"
+    class="bg-red-100 border-l-4 border-red-500 text-red-700 p-4 rounded"
+  >
+    <p>Form not found or could not be loaded.</p>
+  </div>
+
+  <div
+    *ngIf="!isLoading && form"
+    class="bg-white rounded-lg shadow-md overflow-hidden"
+  >
+    <div class="bg-blue-600 text-white px-6 py-4">
+      <h2 class="text-xl font-bold">{{ form?.name }}</h2>
+      <p *ngIf="form?.description" class="mt-1 text-sm text-blue-100">
+        {{ form?.description }}
+      </p>
+    </div>
+
+    <!-- Progress bar -->
+    <div class="h-1 bg-gray-200">
+      <div
+        class="h-full bg-blue-600 transition-all duration-300"
+        [style.width.%]="progress"
+      ></div>
+    </div>
+
+    <!-- Completed View -->
+    <div *ngIf="isCompleted" class="p-8 text-center">
+      <mat-icon class="h-16 w-16 text-green-500 mx-auto mb-4" aria-hidden="true"
+        >check_circle</mat-icon
+      >
+      <h3 class="text-2xl font-bold mb-3 text-gray-800">Thank You!</h3>
+      <p class="text-gray-600 mb-6">
+        Your form has been successfully submitted.
+      </p>
+
+      <!-- Display score if available -->
+      <div
+        *ngIf="runningMaxScore > 0"
+        class="mb-6 p-4 bg-blue-50 rounded-lg inline-block"
+      >
+        <h4 class="font-bold text-lg mb-2">Your Score</h4>
+        <div class="text-3xl font-bold text-blue-700">
+          {{ runningTotalScore }} / {{ runningMaxScore }}
+          <span class="text-base ml-2 text-blue-600">
+            ({{
+              runningMaxScore > 0
+                ? ((runningTotalScore / runningMaxScore) * 100
+                  | number: "1.0-0")
+                : 0
+            }}%)
+          </span>
+        </div>
+      </div>
+
+      <div>
+        <button
+          class="px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-500 mr-2"
+          (click)="resetForm()"
+        >
+          Submit Another Response
+        </button>
+
+        <button
+          *ngIf="submissionUuid"
+          class="px-4 py-2 bg-green-600 text-white rounded-md hover:bg-green-700 focus:outline-none focus:ring-2 focus:ring-green-500"
+          (click)="viewResults()"
+        >
+          View Detailed Results
+        </button>
+      </div>
+    </div>
+
+    <!-- Form Wizard -->
+    <div *ngIf="!isCompleted" class="p-6">
+      <!-- Draft status -->
+      <div *ngIf="draftUuid" class="text-sm text-blue-600 mb-2">
+        <mat-icon class="h-4 w-4 inline mr-1" aria-hidden="true">save</mat-icon>
+        Draft saved · Last updated {{ lastSavedTime | date: "medium" }}
+      </div>
+
+      <form [formGroup]="formGroup" (ngSubmit)="submitForm()">
+        <!-- Section Progress -->
+        <div class="flex justify-between items-center mb-6">
+          <div>
+            <div class="text-sm text-gray-500">
+              Section {{ currentSectionIndex + 1 }} of {{ totalSections }}
+            </div>
+            <h3
+              class="text- lg font-medium text-gray-800"
+              *ngIf="currentSection"
+            >
+              <!-- Display section path for better navigation context -->
+              <span
+                *ngIf="currentSection.displayLevel > 0"
+                class="text-sm text-blue-600 mb-1 block"
+              >
+                {{ getSectionPath(currentSection) }}
+              </span>
+              {{ currentSection?.title }}
+            </h3>
+          </div>
+
+          <!-- Display current score if we have any -->
+          <div
+            *ngIf="completedSectionScores.length > 0"
+            class="text-sm text-gray-600"
+          >
+            Score: {{ runningTotalScore }} / {{ runningMaxScore }}
+          </div>
+        </div>
+
+        <!-- Current Section Fields -->
+        <div *ngIf="currentSection" class="space-y-6">
+          <!-- Submitter field (only on first section) -->
+          <div *ngIf="currentSectionIndex === 0" class="mb-6">
+            <app-text-input
+              label="Enter Your Name"
+              name="submitter"
+              [form]="formGroup"
+              class="w-full"
+              [required]="true"
+            ></app-text-input>
+            <div
+              *ngIf="
+                formGroup.get('submitter')?.invalid &&
+                formGroup.get('submitter')?.touched
+              "
+              class="mt-1 text-sm text-red-600"
+            >
+              Please enter your name
+            </div>
+          </div>
+
+          <!--<div class="p-4 bg-yellow-100 mb-4 rounded">
+<p><strong>Debug Info:</strong></p>
+<p>Section has {{ currentSection?.fields?.length || 0 }} fields</p>
+<pre class="text-xs overflow-auto max-h-32">{{
+currentSection | json
+}}</pre>
+</div>-->
+
+          <!-- Dynamic Fields -->
+          <ng-container *ngFor="let field of currentSection?.fields">
+            <div class="mb-6">
+              <!-- Text Input (text, email) -->
+              <app-text-input
+                *ngIf="
+                  field.fieldType === 'text' || field.fieldType === 'email'
+                "
+                [id]="'field_' + field.id"
+                [label]="field.label"
+                [name]="getFieldId(field)"
+                [form]="formGroup"
+                [type]="field.fieldType"
+                [placeholder]="field.placeholder || ''"
+                class="w-full"
+                [required]="field.required"
+              ></app-text-input>
+
+              <!-- Textarea -->
+              <app-text-area
+                *ngIf="field.fieldType === 'textarea'"
+                [id]="'field_' + field.id"
+                [label]="field.label"
+                [name]="getFieldId(field)"
+                [form]="formGroup"
+                [placeholder]="field.placeholder || ''"
+                [rows]="3"
+                class="w-full"
+                [required]="field.required"
+              ></app-text-area>
+
+              <!-- Number Input -->
+              <app-text-input
+                *ngIf="field.fieldType === 'number'"
+                [id]="'field_' + field.id"
+                [label]="field.label"
+                [name]="getFieldId(field)"
+                [form]="formGroup"
+                type="number"
+                [placeholder]="field.placeholder || ''"
+                class="w-full"
+                [required]="field.required"
+              ></app-text-input>
+
+              <!-- Date Input -->
+              <app-datepicker
+                *ngIf="field.fieldType === 'date'"
+                [id]="'field_' + field.id"
+                [label]="field.label"
+                [name]="getFieldId(field)"
+                [form]="formGroup"
+                class="w-full"
+                [required]="field.required"
+              ></app-datepicker>
+
+              <!-- Time Input -->
+              <app-text-input
+                *ngIf="field.fieldType === 'time'"
+                [id]="'field_' + field.id"
+                [label]="field.label"
+                [name]="getFieldId(field)"
+                [form]="formGroup"
+                type="time"
+                class="w-full"
+                [required]="field.required"
+              ></app-text-input>
+
+              <!-- Select Dropdown -->
+              <app-select
+                *ngIf="field.fieldType === 'select'"
+                [id]="'field_' + field.id"
+                [label]="field.label"
+                [name]="getFieldId(field)"
+                [form]="formGroup"
+                [options]="field.options || []"
+                [placeholder]="field.placeholder || 'Select an option'"
+                class="w-full"
+                [required]="field.required"
+              ></app-select>
+
+              <!-- Radio Buttons -->
+              <app-radio-button
+                *ngIf="field.fieldType === 'radio'"
+                [id]="'field_' + field.id"
+                [label]="field.label"
+                [name]="getFieldId(field)"
+                [form]="formGroup"
+                [options]="field.options || []"
+                class="space-y-2 mt-2"
+                [required]="field.required"
+              ></app-radio-button>
+
+              <!-- Evidence Upload (for fields requiring evidence) -->
+              <div *ngIf="requiresEvidence(field)" class="mt-4 border-l-4 border-blue-500 pl-4">
+                <div class="mb-2">
+                  <label class="block text-sm font-medium text-blue-700">
+                    Upload Evidence
+                    <span class="text-red-500">*</span>
+                  </label>
+                  <p class="text-xs text-gray-600 mt-1">
+                    Please upload supporting documents as evidence of compliance
+                  </p>
+                </div>
+                <file-upload
+                  [label]="'Click or drag files to upload'"
+                  [accept]="'.pdf,.jpg,.jpeg,.png,.doc,.docx'"
+                  [multiple]="false"
+                  [uploadType]="getEvidenceType(field)"
+                  (onSuccess)="handleEvidenceUpload(field, $event)"
+                ></file-upload>
+                <div *ngIf="getUploadedEvidence(field).length > 0" class="mt-2">
+                  <div class="flex items-center text-sm text-green-600">
+                    <mat-icon class="h-4 w-4 mr-1">check_circle</mat-icon>
+                    Evidence uploaded successfully
+                  </div>
+                </div>
+              </div>
+
+              <!-- Checkbox -->
+              <app-checkbox
+                *ngIf="
+                  field.fieldType === 'checkbox' &&
+                  (!field.options || field.options.length === 0)
+                "
+                [id]="'field_' + field.id"
+                [label]="field.label"
+                [name]="getFieldId(field)"
+                [form]="formGroup"
+                class="flex items-center mt-2"
+                [required]="field.required"
+              ></app-checkbox>
+
+              <!-- Checkbox Group -->
+              <div
+                *ngIf="
+                  field.fieldType === 'checkbox' &&
+                  field.options &&
+                  field.options.length > 0
+                "
+              >
+                <label class="block text-sm font-medium text-gray-700 mb-1">
+                  {{ field.label }}
+                  <span *ngIf="field.required" class="text-red-500">*</span>
+                </label>
+                <div class="space-y-2">
+                  <div
+                    *ngFor="let option of field.options"
+                    class="flex items-center"
+                  >
+                    <input
+                      type="checkbox"
+                      [id]="getFieldId(field) + '_' + option.value"
+                      class="h-4 w-4 text-blue-600 border-gray-300 rounded focus:ring-blue-500"
+                      [value]="option.value"
+                      [checked]="getFieldControl(field).value === option.value"
+                      (change)="
+                        getFieldControl(field).setValue(
+                          getFieldControl(field).value === option.value
+                            ? ''
+                            : option.value
+                        )
+                      "
+                    />
+                    <label
+                      [for]="getFieldId(field) + '_' + option.value"
+                      class="ml-2 text-sm text-gray-700"
+                    >
+                      {{ option.label }}
+                      <span
+                        *ngIf="option.score"
+                        class="text-xs text-gray-500 ml-1"
+                        >({{ option.score }} points)</span
+                      >
+                    </label>
+                  </div>
+                </div>
+              </div>
+
+              <!-- Rating -->
+              <div *ngIf="field.fieldType === 'rating'">
+                <label class="block text-sm font-medium text-gray-700 mb-1">
+                  {{ field.label }}
+                  <span *ngIf="field.required" class="text-red-500">*</span>
+                </label>
+                <div class="flex items-center space-x-1">
+                  <ng-container *ngFor="let option of ratingOptions">
+                    <input
+                      type="radio"
+                      class="sr-only"
+                      [id]="getFieldId(field) + '_rating_' + option.value"
+                      [name]="getFieldId(field)"
+                      [formControlName]="getFieldId(field)"
+                      [value]="option.value"
+                    />
+                    <label
+                      [for]="getFieldId(field) + '_rating_' + option.value"
+                      class="w-8 h-8 flex items-center justify-center border border-gray-300 rounded text-sm cursor-pointer hover:bg-yellow-50"
+                      [ngClass]="{
+                        'bg-yellow-100 border-yellow-400 text-yellow-600':
+                          getFieldControl(field).value === option.value,
+                      }"
+                    >
+                      {{ option.value }}
+                    </label>
+                  </ng-container>
+                </div>
+              </div>
+
+              <!-- Help Text -->
+              <div *ngIf="field.helpText" class="mt-1 text-xs text-gray-500">
+                {{ field.helpText }}
+              </div>
+
+              <!-- Validation errors -->
+              <div
+                *ngIf="
+                  getFieldControl(field).invalid &&
+                  getFieldControl(field).touched
+                "
+                class="mt-1 text-sm text-red-600"
+              >
+                <div *ngIf="getFieldControl(field).errors?.['required']">
+                  This field is required
+                </div>
+                <div *ngIf="getFieldControl(field).errors?.['email']">
+                  Please enter a valid email address
+                </div>
+                <div *ngIf="getFieldControl(field).errors?.['minlength']">
+                  Input is too short
+                </div>
+                <div *ngIf="getFieldControl(field).errors?.['maxlength']">
+                  Input is too long
+                </div>
+                <div *ngIf="getFieldControl(field).errors?.['min']">
+                  Value is too small
+                </div>
+                <div *ngIf="getFieldControl(field).errors?.['max']">
+                  Value is too large
+                </div>
+                <div *ngIf="getFieldControl(field).errors?.['pattern']">
+                  Input format is invalid
+                </div>
+              </div>
+            </div>
+          </ng-container>
+        </div>
+
+        <!-- Navigation Buttons -->
+        <div class="mt-8">
+          <!-- Section navigation -->
+          <div class="flex justify-between mb-4">
+            <button
+              type="button"
+              class="px-4 py-2 bg-gray-200 text-gray-700 rounded-md hover:bg-gray-300 focus:outline-none focus:ring-2 focus:ring-gray-500"
+              [disabled]="currentSectionIndex === 0"
+              [ngClass]="{
+                'opacity-50 cursor-not-allowed': currentSectionIndex === 0,
+              }"
+              (click)="goToPreviousSection()"
+            >
+              Previous
+            </button>
+
+            <button
+              *ngIf="currentSectionIndex < totalSections - 1"
+              type="button"
+              class="px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-500"
+              (click)="goToNextSection()"
+            >
+              Next
+            </button>
+
+            <button
+              *ngIf="currentSectionIndex === totalSections - 1"
+              type="submit"
+              class="px-4 py-2 bg-green-600 text-white rounded-md hover:bg-green-700 focus:outline-none focus:ring-2 focus:ring-green-500"
+              [disabled]="isSubmitting"
+              [ngClass]="{ 'opacity-50 cursor-not-allowed': isSubmitting }"
+            >
+              <ng-container *ngIf="isSubmitting">
+                <mat-icon
+                  class="animate-spin -ml-1 mr-2 h-4 w-4 text-white inline"
+                  aria-hidden="true"
+                  >refresh</mat-icon
+                >
+              </ng-container>
+              Submit
+            </button>
+          </div>
+
+          <!-- Draft controls -->
+          <div class="flex justify-between border-t pt-4 mt-2">
+            <button
+              type="button"
+              class="px-4 py-2 bg-gray-200 text-gray-700 rounded-md hover:bg-gray-300"
+              (click)="saveAndExit()"
+            >
+              Save & Exit
+            </button>
+
+            <!-- Only show when a draft exists -->
+            <button
+              *ngIf="draftUuid"
+              type="button"
+              class="px-4 py-2 bg-red-100 text-red-700 rounded-md hover:bg-red-200"
+              (click)="discardDraft()"
+            >
+              Discard Draft
+            </button>
+          </div>
+
+          <!-- Debug button (only visible in development) -->
+          <div *ngIf="isDebugMode" class="mt-4 border-t pt-4">
+            <pre class="bg-gray-100 p-2 rounded text-xs overflow-auto max-h-32">
+              Current Section: {{ currentSection | json }}</pre
+            >
+            <pre
+              class="bg-gray-100 p-2 rounded text-xs overflow-auto max-h-32 mt-2"
+            >
+              Form Values: {{ formGroup.value | json }}</pre
+            >
+          </div>
+        </div>
+      </form>
+    </div>
+  </div>
+</div>

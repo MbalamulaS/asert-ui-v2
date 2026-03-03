@@ -1,0 +1,80 @@
+.tree-container {
+  position: relative;
+  padding: 8px;
+}
+
+.tree-node-wrapper {
+  position: relative;
+  padding: 4px 0;
+}
+
+.tree-node {
+  display: flex;
+  align-items: center;
+  position: relative;
+  padding: 4px 8px;
+  border-radius: 4px;
+  margin: 2px 0;
+  transition: background-color 0.2s ease;
+}
+
+.tree-node:hover {
+  background-color: #f1f5f9;
+}
+
+.tree-node.selected {
+  background-color: #e3f2fd;
+  font-weight: bold;
+}
+
+/* Pseudo-class for vertical line */
+.tree-node-wrapper::before {
+  content: "";
+  position: absolute;
+  top: 0;
+  left: 12px;
+  width: 1px;
+  height: 100%;
+  background-color: #d1d5db;
+}
+
+/* Pseudo-class for horizontal line */
+.tree-node::before {
+  content: "";
+  position: absolute;
+  top: 50%;
+  left: -12px;
+  width: 12px;
+  height: 1px;
+  background-color: #d1d5db;
+}
+
+/* Connector for last sibling */
+.tree-node-wrapper.is-last-sibling::before {
+  height: 50%;
+}
+
+/* Toggle button with pseudo-classes */
+.tree-node button {
+  background: white;
+  border: none;
+  padding: 0;
+  margin: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.tree-node button:hover {
+  background-color: #e0e0e0;
+  border-radius: 3px;
+}
+
+.tree-node span {
+  margin-left: 6px;
+}
+
+/* Toggle icon rotation */
+.rotate-90 {
+  transform: rotate(90deg);
+}

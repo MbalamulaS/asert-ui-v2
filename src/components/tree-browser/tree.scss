@@ -1,0 +1,47 @@
+p.tree,
+ul.tree,
+ul.tree ul {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+}
+
+ul.tree ul {
+  margin-left: 1em;
+}
+
+ul.tree li {
+  margin-left: 0.35em;
+  border-left: thin dashed #000;
+}
+
+ul.tree li span {
+  position: "relative";
+  top: "-7px";
+  padding: "3px 15px";
+}
+
+ul.tree li span.active {
+  background-color: #d4e6e0;
+  border: 1px solid #000;
+  border-radius: 20px;
+  padding: 20px;
+}
+
+ul.tree li:last-child {
+  border-left: none;
+}
+
+ul.tree li:before {
+  width: 0.9em;
+  height: 0.6em;
+  margin-right: 0.1em;
+  vertical-align: top;
+  border-bottom: thin dashed #000;
+  content: "";
+  display: inline-block;
+}
+
+ul.tree li:last-child:before {
+  border-left: thin dashed #000;
+}

@@ -1,0 +1,19 @@
+const CLIENT_ID = 'webapp';
+const CLIENT_SECRET = 'webapp';
+const GRANT_TYPE = 'password';
+const API_URL = '/api/v1';
+const API_WS_URL = '/ws';
+const ASERT_USER = 'ASERT_USER';
+const SELECTED_MENU_GROUP = 'SELECTED_MENU_GROUP';
+
+export const environment = {
+  production: false,
+  CLIENT_SECRET,
+  CLIENT_ID,
+  GRANT_TYPE,
+  API_URL,
+  API_WS_URL,
+  CONTENT_TYPE: 'application/json',
+  ASERT_USER,
+  SELECTED_MENU_GROUP,
+};

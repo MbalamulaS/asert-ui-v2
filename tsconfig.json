@@ -1,0 +1,48 @@
+/* To learn more about this file see: https://angular.io/config/tsconfig. */
+{
+  "compileOnSave": false,
+  "compilerOptions": {
+    "outDir": "./dist/out-tsc",
+    "strict": false, // Enable strict mode
+    "alwaysStrict": false,
+    "noImplicitAny": false, // Allow implicit any
+    "strictFunctionTypes": false, // Disable strict function types
+    "noImplicitOverride": true,
+    "noPropertyAccessFromIndexSignature": true,
+    "noImplicitReturns": true,
+    "noFallthroughCasesInSwitch": true,
+    "skipLibCheck": true,
+    "esModuleInterop": true,
+    "sourceMap": true,
+    "declaration": false,
+    "experimentalDecorators": true,
+    "moduleResolution": "node",
+    "importHelpers": true,
+    "target": "ES2022",
+    "module": "ES2022",
+    "types": ["node"],
+    "useDefineForClassFields": false,
+    "baseUrl": "src",
+    "paths": {
+      "environment/*": ["environment/*"],
+      "app/*": ["app/*"],
+      "pipes/*": ["app/pipes/*"],
+      "modules/*": ["modules/*"],
+      "layouts/*": ["layouts/*"],
+      "store/*": ["store/*"],
+      "config/*": ["config/*"],
+      "assets/*": ["assets/*"],
+      "components/*": ["components/*"],
+      "utils/*": ["utils/*"],
+      "services/*": ["services/*"],
+      "styles/*": ["styles/*"]
+    },
+    "lib": ["ES2022", "dom"]
+  },
+  "angularCompilerOptions": {
+    "enableI18nLegacyMessageIdFormat": false,
+    "strictInjectionParameters": true,
+    "strictInputAccessModifiers": true,
+    "strictTemplates": false
+  }
+}

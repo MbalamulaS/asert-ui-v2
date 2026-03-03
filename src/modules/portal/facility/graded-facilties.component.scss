@@ -1,0 +1,95 @@
+/* Line clamp for text truncation */
+.line-clamp-1 {
+  display: -webkit-box;
+  -webkit-line-clamp: 1;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+}
+
+.line-clamp-3 {
+  display: -webkit-box;
+  -webkit-line-clamp: 3;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+}
+
+/* Custom shadow effects */
+.hover-shadow {
+  transition: all 0.3s ease;
+
+  &:hover {
+    transform: translateY(-5px);
+    box-shadow:
+      0 10px 25px -5px rgba(0, 0, 0, 0.1),
+      0 10px 10px -5px rgba(0, 0, 0, 0.04);
+  }
+}
+
+/* Rating badge styles */
+.rating-badge {
+  display: inline-flex;
+  align-items: center;
+  background-color: rgba(59, 130, 246, 0.1);
+  color: #2563eb;
+  padding: 0.25rem 0.5rem;
+  border-radius: 0.25rem;
+  font-weight: 600;
+}
+
+/* Amenity chip styles */
+.amenity-chip {
+  display: inline-flex;
+  padding: 0.25rem 0.5rem;
+  background-color: #f3f4f6;
+  color: #4b5563;
+  border-radius: 9999px;
+  font-size: 0.75rem;
+  line-height: 1rem;
+}
+
+/* Stars animation */
+@keyframes star-pulse {
+  0% {
+    transform: scale(1);
+  }
+  50% {
+    transform: scale(1.2);
+  }
+  100% {
+    transform: scale(1);
+  }
+}
+
+.star-icon {
+  color: #facc15;
+
+  &:hover {
+    animation: star-pulse 0.5s ease;
+  }
+}
+
+/* Custom styling for Material components */
+::ng-deep {
+  .mat-paginator {
+    background: transparent;
+  }
+
+  .mat-form-field-appearance-outline .mat-form-field-outline {
+    color: #d1d5db;
+  }
+
+  .mat-form-field-appearance-outline.mat-focused .mat-form-field-outline-thick {
+    color: #3b82f6;
+  }
+
+  .mat-select-panel {
+    border-radius: 0.5rem;
+  }
+}
+
+/* Responsive adjustments */
+@media (max-width: 768px) {
+  .grid-cols-3 {
+    grid-template-columns: repeat(1, minmax(0, 1fr));
+  }
+}

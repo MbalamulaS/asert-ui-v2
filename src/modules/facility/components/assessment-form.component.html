@@ -1,0 +1,713 @@
+<container>
+  <div *ngIf="isLoading" class="text-center py-10">
+    <mat-icon
+      class="animate-spin h-8 w-8 text-blue-600 mx-auto"
+      aria-hidden="true"
+      >refresh</mat-icon
+    >
+    <p class="mt-2 text-gray-600">Loading form...</p>
+  </div>
+
+  <div
+    *ngIf="!isLoading && !form"
+    class="bg-red-100 border-l-4 border-red-500 text-red-700 p-4 rounded"
+    role="alert"
+  >
+    <p>Form not found or could not be loaded.</p>
+  </div>
+
+  <div
+    *ngIf="!isLoading && form"
+    class="bg-white rounded-lg shadow-md overflow-hidden p-4"
+  >
+    <app-header
+      [title]="
+        mode === 'self-assessment'
+          ? 'Self Assess ' + (hotel?.name || '')
+          : 'Assess ' + (hotel?.name || '')
+      "
+      class="text-xl font-semibold text-gray-800"
+    />
+
+    <!-- Completed View -->
+    <div *ngIf="isCompleted" class="text-center">
+      <mat-icon class="h-16 w-16 text-green-500 mx-auto mb-4" aria-hidden="true"
+        >check_circle</mat-icon
+      >
+      <h3 class="text-2xl font-bold mb-3 text-gray-800">Thank You!</h3>
+      <p class="text-gray-600 mb-6">
+        Your form has been successfully submitted.
+      </p>
+
+      <div
+        *ngIf="runningMaxScore > 0"
+        class="mb-6 p-4 bg-blue-50 rounded-lg inline-block"
+      >
+        <h4 class="font-bold text-lg mb-2">Your Score</h4>
+        <div class="text-3xl font-bold text-blue-700">
+          {{ runningTotalScore }} / {{ runningMaxScore }}
+          <span class="text-base ml-2 text-blue-600">
+            ({{
+              runningMaxScore > 0
+                ? ((runningTotalScore / runningMaxScore) * 100
+                  | number: "1.0-0")
+                : 0
+            }}%)
+          </span>
+        </div>
+      </div>
+
+      <div class="flex justify-center gap-4">
+        <button
+          class="px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-500"
+          (click)="resetForm()"
+          aria-label="Submit another response"
+        >
+          Submit Another Response
+        </button>
+
+        <button
+          *ngIf="submissionUuid"
+          class="px-4 py-2 bg-green-600 text-white rounded-md hover:bg-green-700 focus:outline-none focus:ring-2 focus:ring-green-500"
+          (click)="viewResults()"
+          aria-label="View detailed results"
+        >
+          View Detailed Results
+        </button>
+      </div>
+    </div>
+
+    <!-- Form Wizard with Mat Stepper -->
+    <div *ngIf="!isCompleted" class="py-3">
+      <!-- Autosave status -->
+      <div class="flex items-center justify-between mb-4">
+        <div class="flex items-center text-sm" role="status">
+          <div *ngIf="isAutoSaving" class="flex items-center text-orange-600">
+            <mat-icon
+              class="h-4 w-4 inline mr-1 animate-spin"
+              aria-hidden="true"
+              >cached</mat-icon
+            >
+            Saving...
+          </div>
+          <div
+            *ngIf="!isAutoSaving && lastSavedTime"
+            class="flex items-center text-green-600"
+          >
+            <mat-icon class="h-4 w-4 inline mr-1" aria-hidden="true"
+              >cloud_done</mat-icon
+            >
+            Saved {{ lastSavedTime | date: "H:mm" }}
+          </div>
+          <div
+            *ngIf="!isAutoSaving && !lastSavedTime"
+            class="flex items-center text-gray-500"
+          >
+            <mat-icon class="h-4 w-4 inline mr-1" aria-hidden="true"
+              >edit</mat-icon
+            >
+            Start typing to auto-save
+          </div>
+        </div>
+        <div class="flex space-x-2">
+          <button
+            type="button"
+            (click)="saveNow()"
+            class="px-3 py-1 text-xs bg-blue-600 text-white rounded hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-500"
+            [disabled]="isAutoSaving"
+          >
+            Save Now
+          </button>
+        </div>
+      </div>
+
+      <form [formGroup]="formGroup" (ngSubmit)="submitForm()" novalidate>
+        <!-- Desktop Horizontal Stepper -->
+        <mat-stepper
+          #stepper
+          [selectedIndex]="currentSectionIndex"
+          (selectionChange)="onStepChange($event)"
+          class="mb-6 hidden md:block"
+          orientation="horizontal"
+        >
+          <ng-container
+            *ngFor="let section of flattenedSections; let i = index"
+          >
+            <mat-step [label]="section.title" *ngIf="isSectionVisible(section)">
+              <ng-template matStepLabel>
+                <div>
+                  <div>
+                    <strong>{{ section.title }}</strong>
+                  </div>
+                  <small>{{ section.parentTitle }}</small>
+                </div>
+              </ng-template>
+              <!-- Dynamic Fields -->
+              <div class="space-y-4 sm:space-y-6">
+                <ng-container
+                  *ngFor="
+                    let field of getSortedFields(section?.fields || []);
+                    trackBy: trackByFieldId
+                  "
+                >
+                  <div class="mb-4 sm:mb-6" *ngIf="isFieldVisible(field)">
+                    <!-- Text Input (text, email) -->
+                    <app-text-input
+                      *ngIf="
+                        field.fieldType === 'text' ||
+                        field.fieldType === 'email'
+                      "
+                      [id]="'field_' + field.id"
+                      [label]="field.label"
+                      [name]="getFieldId(field)"
+                      [form]="formGroup"
+                      [type]="field.fieldType"
+                      [placeholder]="field.placeholder || ''"
+                      [required]="isFieldRequired(field)"
+                      [attr.aria-required]="isFieldRequired(field)"
+                    ></app-text-input>
+
+                    <!-- Textarea -->
+                    <app-text-area
+                      *ngIf="field.fieldType === 'textarea'"
+                      [id]="'field_' + field.id"
+                      [label]="field.label"
+                      [name]="getFieldId(field)"
+                      [form]="formGroup"
+                      [placeholder]="field.placeholder || ''"
+                      [rows]="3"
+                      [required]="isFieldRequired(field)"
+                      [attr.aria-required]="isFieldRequired(field)"
+                    ></app-text-area>
+
+                    <!-- Number Input -->
+                    <app-text-input
+                      *ngIf="field.fieldType === 'number'"
+                      [id]="'field_' + field.id"
+                      [label]="field.label"
+                      [name]="getFieldId(field)"
+                      [form]="formGroup"
+                      type="number"
+                      [placeholder]="field.placeholder || ''"
+                      [required]="isFieldRequired(field)"
+                      [attr.aria-required]="isFieldRequired(field)"
+                    ></app-text-input>
+
+                    <!-- Date Input -->
+                    <app-datepicker
+                      *ngIf="field.fieldType === 'date'"
+                      [id]="'field_' + field.id"
+                      [label]="field.label"
+                      [name]="getFieldId(field)"
+                      [form]="formGroup"
+                      class="w-full"
+                      [required]="isFieldRequired(field)"
+                      [attr.aria-required]="isFieldRequired(field)"
+                    ></app-datepicker>
+
+                    <!-- Time Input -->
+                    <app-text-input
+                      *ngIf="field.fieldType === 'time'"
+                      [id]="'field_' + field.id"
+                      [label]="field.label"
+                      [name]="getFieldId(field)"
+                      [form]="formGroup"
+                      type="time"
+                      [required]="isFieldRequired(field)"
+                      [attr.aria-required]="isFieldRequired(field)"
+                    ></app-text-input>
+
+                    <!-- Select Dropdown -->
+                    <app-select
+                      *ngIf="field.fieldType === 'select'"
+                      [id]="'field_' + field.id"
+                      [label]="field.label"
+                      [name]="getFieldId(field)"
+                      [form]="formGroup"
+                      [options]="field.options || []"
+                      [placeholder]="field.placeholder || 'Select an option'"
+                      [required]="isFieldRequired(field)"
+                      [attr.aria-required]="isFieldRequired(field)"
+                    ></app-select>
+
+                    <!-- Radio Buttons -->
+                    <app-radio-button
+                      *ngIf="field.fieldType === 'radio'"
+                      [id]="'field_' + field.id"
+                      [label]="field.label"
+                      [name]="getFieldId(field)"
+                      [form]="formGroup"
+                      [options]="field.options || []"
+                      class="space-y-2 mt-2"
+                      [required]="isFieldRequired(field)"
+                      [attr.aria-required]="isFieldRequired(field)"
+                    ></app-radio-button>
+
+                    <!-- Single Checkbox -->
+                    <app-checkbox
+                      *ngIf="
+                        field.fieldType === 'checkbox' &&
+                        (!field.options || field.options.length === 0)
+                      "
+                      [id]="'field_' + field.id"
+                      [label]="field.label"
+                      [name]="getFieldId(field)"
+                      [form]="formGroup"
+                      class="flex items-center mt-2"
+                      [required]="isFieldRequired(field)"
+                      [attr.aria-required]="isFieldRequired(field)"
+                    ></app-checkbox>
+
+                    <!-- Checkbox Group -->
+                    <div
+                      *ngIf="
+                        field.fieldType === 'checkbox' &&
+                        field.options &&
+                        field.options.length > 0
+                      "
+                    >
+                      <app-multi-checkbox
+                        [id]="getFieldId(field)"
+                        [label]="field.label"
+                        [name]="getFieldId(field)"
+                        [form]="formGroup"
+                        [options]="field.options"
+                        [required]="isFieldRequired(field)"
+                        [attr.aria-required]="isFieldRequired(field)"
+                        (change)="onMultiCheckboxChange(field, $event)"
+                      ></app-multi-checkbox>
+                    </div>
+
+                    <!-- Rating -->
+                    <app-rating
+                      *ngIf="field.fieldType === 'rating'"
+                      [id]="getFieldId(field)"
+                      [label]="field.label"
+                      [name]="getFieldId(field)"
+                      [form]="formGroup"
+                      [options]="ratingOptions"
+                      [required]="isFieldRequired(field)"
+                      [attr.aria-required]="isFieldRequired(field)"
+                    ></app-rating>
+
+                    <!-- Help Text -->
+                    <div
+                      *ngIf="field.helpText"
+                      class="mt-1 text-xs text-gray-500"
+                      [attr.id]="getFieldId(field) + '_help'"
+                    >
+                      {{ field.helpText }}
+                    </div>
+
+                    <!-- Comments Section -->
+                    <div class="mt-3 p-3 bg-gray-50 rounded-md border">
+                      <app-text-area
+                        [id]="getFieldId(field) + '_comments'"
+                        label="Comments (Optional)"
+                        [name]="getFieldId(field) + '_comments'"
+                        [form]="formGroup"
+                        placeholder="Add any comments or notes for this question (defaults to 'N/A' if left empty)"
+                        [rows]="2"
+                        [required]="false"
+                        class="w-full"
+                      ></app-text-area>
+                      <div class="mt-1 text-xs text-gray-400">
+                        This field is optional and will default to 'N/A' if left
+                        empty
+                      </div>
+                    </div>
+
+                    <!-- Validation errors -->
+                    <div
+                      *ngIf="
+                        getFieldControl(field).invalid &&
+                        getFieldControl(field).touched
+                      "
+                      class="mt-1 text-sm text-red-600"
+                      role="alert"
+                      [attr.id]="getFieldId(field) + '_error'"
+                    >
+                      <div *ngIf="getFieldControl(field).errors?.['required']">
+                        This field is required
+                      </div>
+                      <div *ngIf="getFieldControl(field).errors?.['email']">
+                        Please enter a valid email address
+                      </div>
+                      <div *ngIf="getFieldControl(field).errors?.['minlength']">
+                        Input is too short
+                      </div>
+                      <div *ngIf="getFieldControl(field).errors?.['maxlength']">
+                        Input is too long
+                      </div>
+                      <div *ngIf="getFieldControl(field).errors?.['min']">
+                        Value is too small
+                      </div>
+                      <div *ngIf="getFieldControl(field).errors?.['max']">
+                        Value is too large
+                      </div>
+                      <div *ngIf="getFieldControl(field).errors?.['pattern']">
+                        Input format is invalid
+                      </div>
+                    </div>
+                  </div>
+                </ng-container>
+              </div>
+
+              <!-- Navigation Buttons within Mat Step -->
+              <div class="mt-6 sm:mt-8">
+                <div
+                  class="flex flex-col sm:flex-row justify-between mb-4 gap-3 sm:gap-4"
+                >
+                  <button
+                    type="button"
+                    mat-button
+                    matStepperPrevious
+                    class="w-full sm:w-auto px-4 py-2 bg-gray-200 text-gray-700 rounded-md hover:bg-gray-300 focus:outline-none focus:ring-2 focus:ring-gray-500"
+                    [disabled]="i === 0"
+                    aria-label="Go to previous section"
+                  >
+                    Previous
+                  </button>
+
+                  <button
+                    *ngIf="hasNextVisibleSection(i)"
+                    type="button"
+                    mat-button
+                    matStepperNext
+                    class="w-full sm:w-auto px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-500 disabled:opacity-50 disabled:cursor-not-allowed"
+                    [disabled]="!isSectionValid() || isSubmitting"
+                    (click)="markSectionAsTouched()"
+                    aria-label="Go to next section"
+                  >
+                    Next
+                  </button>
+                  <button
+                    *ngIf="isLastVisibleSection(i)"
+                    type="submit"
+                    class="w-full sm:w-auto px-4 py-2 bg-green-600 text-white rounded-md hover:bg-green-700 focus:outline-none focus:ring-2 focus:ring-green-500 disabled:opacity-50 disabled:cursor-not-allowed"
+                    [disabled]="isSubmitting"
+                    aria-label="Submit form"
+                  >
+                    <ng-container *ngIf="isSubmitting">
+                      <mat-icon
+                        class="animate-spin -ml-1 mr-2 h-4 w-4 text-white inline"
+                        aria-hidden="true"
+                        >refresh</mat-icon
+                      >
+                    </ng-container>
+                    Submit
+                  </button>
+                </div>
+              </div>
+            </mat-step>
+          </ng-container>
+        </mat-stepper>
+
+        <!-- Mobile Vertical Stepper -->
+        <mat-stepper
+          #mobileStepper
+          [linear]="true"
+          [selectedIndex]="currentSectionIndex"
+          (selectionChange)="onStepChange($event)"
+          class="mb-6 block md:hidden"
+          orientation="vertical"
+        >
+          <ng-container
+            *ngFor="let section of flattenedSections; let i = index"
+          >
+            <mat-step [label]="section.title" *ngIf="isSectionVisible(section)">
+              <ng-template matStepLabel>
+                <div>
+                  <div>
+                    <strong>{{ section.title }}</strong>
+                  </div>
+                  <small>{{ section.parentTitle }}</small>
+                </div>
+              </ng-template>
+              <!-- Dynamic Fields -->
+              <div class="space-y-4">
+                <ng-container
+                  *ngFor="
+                    let field of getSortedFields(section?.fields || []);
+                    trackBy: trackByFieldId
+                  "
+                >
+                  <div class="mb-4" *ngIf="isFieldVisible(field)">
+                    <!-- Text Input (text, email) -->
+                    <app-text-input
+                      *ngIf="
+                        field.fieldType === 'text' ||
+                        field.fieldType === 'email'
+                      "
+                      [id]="'field_' + field.id"
+                      [label]="field.label"
+                      [name]="getFieldId(field)"
+                      [form]="formGroup"
+                      [type]="field.fieldType"
+                      [placeholder]="field.placeholder || ''"
+                      [required]="isFieldRequired(field)"
+                      [attr.aria-required]="isFieldRequired(field)"
+                    ></app-text-input>
+
+                    <!-- Textarea -->
+                    <app-text-area
+                      *ngIf="field.fieldType === 'textarea'"
+                      [id]="'field_' + field.id"
+                      [label]="field.label"
+                      [name]="getFieldId(field)"
+                      [form]="formGroup"
+                      [placeholder]="field.placeholder || ''"
+                      [rows]="3"
+                      [required]="isFieldRequired(field)"
+                      [attr.aria-required]="isFieldRequired(field)"
+                    ></app-text-area>
+
+                    <!-- Number Input -->
+                    <app-text-input
+                      *ngIf="field.fieldType === 'number'"
+                      [id]="'field_' + field.id"
+                      [label]="field.label"
+                      [name]="getFieldId(field)"
+                      [form]="formGroup"
+                      type="number"
+                      [placeholder]="field.placeholder || ''"
+                      [required]="isFieldRequired(field)"
+                      [attr.aria-required]="isFieldRequired(field)"
+                    ></app-text-input>
+
+                    <!-- Date Input -->
+                    <app-datepicker
+                      *ngIf="field.fieldType === 'date'"
+                      [id]="'field_' + field.id"
+                      [label]="field.label"
+                      [name]="getFieldId(field)"
+                      [form]="formGroup"
+                      class="w-full"
+                      [required]="isFieldRequired(field)"
+                      [attr.aria-required]="isFieldRequired(field)"
+                    ></app-datepicker>
+
+                    <!-- Time Input -->
+                    <app-text-input
+                      *ngIf="field.fieldType === 'time'"
+                      [id]="'field_' + field.id"
+                      [label]="field.label"
+                      [name]="getFieldId(field)"
+                      [form]="formGroup"
+                      type="time"
+                      [required]="isFieldRequired(field)"
+                      [attr.aria-required]="isFieldRequired(field)"
+                    ></app-text-input>
+
+                    <!-- Select Dropdown -->
+                    <app-select
+                      *ngIf="field.fieldType === 'select'"
+                      [id]="'field_' + field.id"
+                      [label]="field.label"
+                      [name]="getFieldId(field)"
+                      [form]="formGroup"
+                      [options]="field.options || []"
+                      [placeholder]="field.placeholder || 'Select an option'"
+                      [required]="isFieldRequired(field)"
+                      [attr.aria-required]="isFieldRequired(field)"
+                    ></app-select>
+
+                    <!-- Radio Buttons -->
+                    <app-radio-button
+                      *ngIf="field.fieldType === 'radio'"
+                      [id]="'field_' + field.id"
+                      [label]="field.label"
+                      [name]="getFieldId(field)"
+                      [form]="formGroup"
+                      [options]="field.options || []"
+                      class="space-y-1 mt-2"
+                      [required]="isFieldRequired(field)"
+                      [attr.aria-required]="isFieldRequired(field)"
+                    ></app-radio-button>
+
+                    <!-- Single Checkbox -->
+                    <app-checkbox
+                      *ngIf="
+                        field.fieldType === 'checkbox' &&
+                        (!field.options || field.options.length === 0)
+                      "
+                      [id]="'field_' + field.id"
+                      [label]="field.label"
+                      [name]="getFieldId(field)"
+                      [form]="formGroup"
+                      class="flex items-center mt-2"
+                      [required]="isFieldRequired(field)"
+                      [attr.aria-required]="isFieldRequired(field)"
+                    ></app-checkbox>
+
+                    <!-- Checkbox Group -->
+                    <div
+                      *ngIf="
+                        field.fieldType === 'checkbox' &&
+                        field.options &&
+                        field.options.length > 0
+                      "
+                    >
+                      <app-multi-checkbox
+                        [id]="getFieldId(field)"
+                        [label]="field.label"
+                        [name]="getFieldId(field)"
+                        [form]="formGroup"
+                        [options]="field.options"
+                        [required]="isFieldRequired(field)"
+                        [attr.aria-required]="isFieldRequired(field)"
+                        (change)="onMultiCheckboxChange(field, $event)"
+                      ></app-multi-checkbox>
+                    </div>
+
+                    <!-- Rating -->
+                    <app-rating
+                      *ngIf="field.fieldType === 'rating'"
+                      [id]="getFieldId(field)"
+                      [label]="field.label"
+                      [name]="getFieldId(field)"
+                      [form]="formGroup"
+                      [options]="ratingOptions"
+                      [required]="isFieldRequired(field)"
+                      [attr.aria-required]="isFieldRequired(field)"
+                    ></app-rating>
+
+                    <!-- Help Text -->
+                    <div
+                      *ngIf="field.helpText"
+                      class="mt-1 text-xs text-gray-500"
+                      [attr.id]="getFieldId(field) + '_help'"
+                    >
+                      {{ field.helpText }}
+                    </div>
+
+                    <!-- Comments Section -->
+                    <div class="mt-3 p-3 bg-gray-50 rounded-md border">
+                      <app-text-area
+                        [id]="getFieldId(field) + '_comments'"
+                        label="Comments (Optional)"
+                        [name]="getFieldId(field) + '_comments'"
+                        [form]="formGroup"
+                        placeholder="Add any comments or notes for this question (defaults to 'N/A' if left empty)"
+                        [rows]="2"
+                        [required]="false"
+                        class="w-full"
+                      ></app-text-area>
+                      <div class="mt-1 text-xs text-gray-400">
+                        This field is optional and will default to 'N/A' if left
+                        empty
+                      </div>
+                    </div>
+
+                    <!-- Validation errors -->
+                    <div
+                      *ngIf="
+                        getFieldControl(field).invalid &&
+                        getFieldControl(field).touched
+                      "
+                      class="mt-1 text-sm text-red-600"
+                      role="alert"
+                      [attr.id]="getFieldId(field) + '_error'"
+                    >
+                      <div *ngIf="getFieldControl(field).errors?.['required']">
+                        This field is required
+                      </div>
+                      <div *ngIf="getFieldControl(field).errors?.['email']">
+                        Please enter a valid email address
+                      </div>
+                      <div *ngIf="getFieldControl(field).errors?.['minlength']">
+                        Input is too short
+                      </div>
+                      <div *ngIf="getFieldControl(field).errors?.['maxlength']">
+                        Input is too long
+                      </div>
+                      <div *ngIf="getFieldControl(field).errors?.['min']">
+                        Value is too small
+                      </div>
+                      <div *ngIf="getFieldControl(field).errors?.['max']">
+                        Value is too large
+                      </div>
+                      <div *ngIf="getFieldControl(field).errors?.['pattern']">
+                        Input format is invalid
+                      </div>
+                    </div>
+                  </div>
+                </ng-container>
+              </div>
+
+              <!-- Mobile Navigation Buttons -->
+              <div class="mt-6">
+                <div class="flex flex-col gap-3">
+                  <button
+                    *ngIf="hasNextVisibleSection(i)"
+                    type="button"
+                    mat-button
+                    matStepperNext
+                    class="w-full px-4 py-3 bg-blue-600 text-white rounded-md hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-500 disabled:opacity-50 disabled:cursor-not-allowed text-center font-medium"
+                    [disabled]="!isSectionValid() || isSubmitting"
+                    (click)="markSectionAsTouched()"
+                    aria-label="Go to next section"
+                  >
+                    Next Section
+                  </button>
+                  <button
+                    *ngIf="isLastVisibleSection(i)"
+                    type="submit"
+                    class="w-full px-4 py-3 bg-green-600 text-white rounded-md hover:bg-green-700 focus:outline-none focus:ring-2 focus:ring-green-500 disabled:opacity-50 disabled:cursor-not-allowed text-center font-medium"
+                    [disabled]="isSubmitting"
+                    aria-label="Submit form"
+                  >
+                    <ng-container *ngIf="isSubmitting">
+                      <mat-icon
+                        class="animate-spin -ml-1 mr-2 h-4 w-4 text-white inline"
+                        aria-hidden="true"
+                        >refresh</mat-icon
+                      >
+                    </ng-container>
+                    {{
+                      mode === "self-assessment"
+                        ? "Submit Self-Assessment"
+                        : "Submit Assessment"
+                    }}
+                  </button>
+
+                  <button
+                    *ngIf="i > 0"
+                    type="button"
+                    mat-button
+                    matStepperPrevious
+                    class="w-full px-4 py-2 bg-gray-200 text-gray-700 rounded-md hover:bg-gray-300 focus:outline-none focus:ring-2 focus:ring-gray-500 text-center"
+                    aria-label="Go to previous section"
+                  >
+                    Previous Section
+                  </button>
+                </div>
+              </div>
+            </mat-step>
+          </ng-container>
+        </mat-stepper>
+
+        <!-- Draft controls (outside stepper) -->
+        <div
+          class="flex flex-col sm:flex-row justify-between border-t pt-4 mt-2 gap-3 sm:gap-4"
+        >
+          <button
+            type="button"
+            class="w-full sm:w-auto px-4 py-2 bg-gray-200 text-gray-700 rounded-md hover:bg-gray-300 focus:outline-none focus:ring-2 focus:ring-gray-500"
+            (click)="saveAndExit()"
+            aria-label="Save draft and exit"
+          >
+            Save & Exit
+          </button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <!-- Validation Dialog -->
+  <app-form-validation-dialog
+    [open]="showValidationDialog"
+    [data]="validationDialogData"
+    (onResult)="onValidationDialogResult($event)"
+  ></app-form-validation-dialog>
+</container>

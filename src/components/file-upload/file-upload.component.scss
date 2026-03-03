@@ -1,0 +1,101 @@
+.wrapper {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-direction: column;
+  background: #fff;
+
+  .header {
+    color: #036564;
+    font-weight: 600;
+    font-size: 27px;
+    text-align: center;
+  }
+
+  & .form-container {
+    cursor: pointer;
+    border-radius: 4px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    flex-direction: column;
+    width: 100%;
+
+    & p {
+      margin-top: 15px;
+    }
+
+    &:where(i, p) {
+      color: #036564;
+    }
+  }
+}
+
+section {
+  width: 100%;
+  margin-top: 10px;
+
+  .row {
+    background: #e9f0ff;
+    margin-bottom: 10px;
+    padding: 15px 20px;
+    border-radius: 5px;
+    list-style: none;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+
+    .content {
+      width: 100%;
+    }
+  }
+  &.progress-area {
+    .row {
+      .content {
+        margin-left: 15px;
+      }
+      .progress-bar {
+        height: 6px;
+        width: 100%;
+        background: #fff;
+        margin-bottom: 4px;
+        border-radius: 30px;
+
+        .progress {
+          height: 100%;
+          width: 50%;
+          background: #036564;
+          border-radius: inherit;
+        }
+      }
+    }
+    .details {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      margin-bottom: 7px;
+    }
+  }
+
+  &.uploaded-area {
+    max-height: 150px;
+    overflow-y: scroll;
+    .row {
+      .content {
+        margin-left: 15px;
+      }
+    }
+    &::-webkit-scrollbar {
+      width: 0;
+    }
+  }
+
+  .details {
+    & span {
+      font-size: 14px;
+      &.percent {
+        font-weight: bold;
+      }
+    }
+  }
+}

@@ -1,0 +1,32 @@
+@use "@angular/material" as mat;
+
+@include mat.core();
+
+// Define your primary, accent, warn, and custom color palettes.
+$custom-primary: mat.define-palette(mat.$indigo-palette);
+$custom-accent: mat.define-palette(mat.$amber-palette, A200, A100, A400);
+$custom-warn: mat.define-palette(mat.$red-palette);
+$custom-mute: mat.define-palette(mat.$grey-palette); // Grey
+$custom-success: mat.define-palette(mat.$green-palette); // Green
+$custom-danger: mat.define-palette(mat.$red-palette); // Red
+$custom-warm: mat.define-palette(mat.$orange-palette); // Orange
+
+// Create the theme object (a Sass map containing all of the palettes).
+$custom-theme: mat.define-light-theme(
+  (
+    color: (
+      primary: $custom-primary,
+      accent: $custom-accent,
+      warn: $custom-warn,
+      mute: $custom-mute, // Grey palette
+      success: $custom-success, // Green palette
+      danger: $custom-danger, // Red palette
+      warm: $custom-warm, // Orange palette
+    ),
+    typography: mat.define-typography-config(),
+    density: 0,
+  )
+);
+
+// Include the theme styles for core and theming.
+@include mat.all-component-themes($custom-theme);

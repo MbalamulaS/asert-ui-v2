@@ -1,0 +1,232 @@
+@use "styles/variables";
+/* You can add global styles to this file, and also import other style files */
+@use "@angular/material" as mat;
+
+@use "@angular/material/prebuilt-themes/indigo-pink.css";
+
+/* import tailwind css */
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@include mat.core();
+
+$ng-primary: mat.define-palette(mat.$indigo-palette);
+$ng-accent: mat.define-palette(mat.$pink-palette);
+$ng-warn: mat.define-palette(mat.$red-palette);
+
+$ng-theme: mat.define-light-theme(
+  (
+    color: (
+      primary: $ng-primary,
+      accent: $ng-accent,
+      warn: $ng-warn,
+    ),
+  )
+);
+
+/* this fixes border showing inside form field */
+.mdc-notched-outline__notch {
+  border-right: none;
+}
+
+@include mat.all-component-themes($ng-theme);
+
+.mat-sidenav-container {
+  @apply flex justify-center w-full min-h-screen;
+}
+
+.mat-drawer {
+  width: 300px !important;
+}
+
+.mat-sidenav {
+  @apply bg-gray-800 text-white;
+}
+
+.mat-toolbar {
+  @apply bg-gray-900 text-white;
+}
+
+.mat-nav-list a.mat-list-item {
+  @apply hover:bg-gray-700;
+}
+
+.mat-sidenav-content .mat-toolbar {
+  @apply sticky top-0 z-10 bg-blue-600 text-white;
+}
+
+.content {
+  @apply p-4;
+}
+
+body {
+  margin: 0;
+  font-family: Roboto, "Helvetica Neue", sans-serif;
+}
+
+/* Success Progress Bar (Green) */
+.progress-bar-success .mat-progress-bar-fill::after {
+  background-color: #10b981 !important;
+}
+
+.progress-bar-success .mat-progress-bar-buffer {
+  background-color: #d1fae5 !important;
+}
+
+/* Warning Progress Bar (Yellow/Orange) */
+.progress-bar-warning .mat-progress-bar-fill::after {
+  background-color: #f59e0b !important;
+}
+
+.progress-bar-warning .mat-progress-bar-buffer {
+  background-color: #fef3c7 !important;
+}
+
+/* Danger Progress Bar (Red) */
+.progress-bar-danger .mat-progress-bar-fill::after {
+  background-color: #ef4444 !important;
+}
+
+.progress-bar-danger .mat-progress-bar-buffer {
+  background-color: #fecaca !important;
+}
+
+/* Enhanced Progress Bar Base Styling */
+.mat-progress-bar {
+  border-radius: 9999px !important;
+  overflow: hidden !important;
+  box-shadow: inset 0 1px 3px rgba(0, 0, 0, 0.1) !important;
+}
+
+.mat-progress-bar-fill::after {
+  border-radius: 9999px !important;
+}
+
+.mat-progress-bar-buffer {
+  border-radius: 9999px !important;
+}
+
+/* Card hover animations */
+.transition-shadow {
+  transition:
+    box-shadow 0.3s ease,
+    transform 0.2s ease;
+}
+
+.transition-shadow:hover {
+  transform: translateY(-2px);
+}
+
+/* Enhanced chip styling */
+mat-chip {
+  font-weight: 600 !important;
+  border-radius: 12px !important;
+  font-size: 0.75rem !important;
+}
+
+/* Expansion panel enhancements */
+.mat-expansion-panel-header {
+  transition: background-color 0.2s ease !important;
+}
+
+.mat-expansion-panel-header:hover {
+  background-color: rgba(0, 0, 0, 0.02) !important;
+}
+
+/* Custom progress bar backgrounds for inline styles */
+.bg-green-500 {
+  background-color: #10b981 !important;
+}
+
+.bg-yellow-500 {
+  background-color: #f59e0b !important;
+}
+
+.bg-red-500 {
+  background-color: #ef4444 !important;
+}
+
+.bg-gray-300 {
+  background-color: #d1d5db !important;
+}
+
+/* Smooth transitions for custom progress bars */
+.transition-all {
+  transition: all 0.3s ease !important;
+}
+
+/* Material Design enhancements */
+mat-card {
+  border-radius: 12px !important;
+}
+
+mat-card-header {
+  padding-bottom: 16px !important;
+}
+
+/* Loading spinner customization */
+mat-spinner circle {
+  stroke: #3b82f6 !important;
+}
+
+/* Button enhancements */
+.mat-raised-button,
+.mat-stroked-button {
+  border-radius: 8px !important;
+  font-weight: 500 !important;
+  text-transform: none !important;
+}
+
+/* Icon improvements */
+mat-icon {
+  user-select: none;
+}
+
+/* Responsive improvements */
+@media (max-width: 768px) {
+  .max-w-7xl {
+    padding: 16px !important;
+  }
+
+  .grid-cols-4 {
+    grid-template-columns: repeat(2, 1fr) !important;
+  }
+}
+
+@media (max-width: 640px) {
+  .grid-cols-4,
+  .grid-cols-2 {
+    grid-template-columns: 1fr !important;
+  }
+
+  .flex-col {
+    flex-direction: column !important;
+  }
+
+  .space-x-4 > :not([hidden]) ~ :not([hidden]) {
+    margin-left: 0 !important;
+    margin-top: 8px !important;
+  }
+}
+
+/* Remove rounded corners from Material components */
+mat-card {
+  border-radius: 0 !important;
+}
+
+mat-chip {
+  border-radius: 0 !important;
+}
+
+.mat-progress-bar {
+  border-radius: 0 !important;
+}
+
+.mat-progress-bar-fill::after {
+  border-radius: 0 !important;
+}
+
+.mat-progress-bar-buffer {
+  border-radius: 0 !important;
+}

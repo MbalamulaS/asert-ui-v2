@@ -1,0 +1,895 @@
+<div class="mx-auto px-4 py-6">
+  <div class="bg-white rounded-lg shadow-md overflow-hidden">
+    <div class="bg-gray-300 border border-b-gray-500 text-black px-6 py-4">
+      <h2 class="text-xl font-bold">
+        {{ formId ? "Edit Form" : "Create New Form" }}
+      </h2>
+    </div>
+    <div class="p-6">
+      <form [formGroup]="formBuilderForm" (ngSubmit)="saveForm()">
+        <div class="grid grid-cols-1 md:grid-cols-2 gap-2">
+          <!-- Form Meta Information -->
+          <div
+            *ngIf="validationErrors.length > 0"
+            class="mb-6 p-4 bg-red-50 border border-red-300 rounded-md"
+          >
+            <h4 class="text-red-700 font-medium mb-2">
+              Please fix the following validation errors:
+            </h4>
+            <ul class="list-disc pl-5 text-red-600">
+              <li *ngFor="let error of validationErrors">{{ error }}</li>
+            </ul>
+          </div>
+          <div class="mb-6">
+            <app-text-input
+              label="Form Name"
+              name="name"
+              [form]="formBuilderForm"
+              placeholder="Enter form name"
+              class="w-full"
+              [required]="true"
+            ></app-text-input>
+            <div
+              *ngIf="
+                formBuilderForm.get('name')?.invalid &&
+                formBuilderForm.get('name')?.touched
+              "
+              class="mt-1 text-sm text-red-600"
+            >
+              Form name is required
+            </div>
+          </div>
+
+          <app-fetcher
+            api="hotels/get-types"
+            [defaultParams]="{ size: '15' }"
+            loadingLabel="Fetching Hotel Types.."
+          >
+            <ng-template let-response>
+              <div *ngIf="response; else noData">
+                <app-select
+                  label="Select Hotel Type"
+                  [form]="formBuilderForm"
+                  name="propertyTypes"
+                  [multiple]="true"
+                  [options]="mapPropertyTypes(response.data)"
+                  [ngClass]="{
+                    'border-red-500':
+                      formBuilderForm.get('propertyType')?.invalid &&
+                      formBuilderForm.get('propertyType')?.touched,
+                  }"
+                />
+                <div
+                  *ngIf="
+                    formBuilderForm.get('propertyType')?.invalid &&
+                    formBuilderForm.get('propertyType')?.touched
+                  "
+                  class="mt-1 text-sm text-red-600"
+                >
+                  Hotel type is required
+                </div>
+              </div>
+              <ng-template #noData>No data available</ng-template>
+            </ng-template>
+          </app-fetcher>
+        </div>
+
+        <div class="mb-6">
+          <app-text-area
+            label="Description"
+            name="description"
+            [form]="formBuilderForm"
+            placeholder="Enter form description"
+            [rows]="2"
+            class="w-full"
+          ></app-text-area>
+        </div>
+
+        <!-- Sections -->
+        <div formArrayName="sections">
+          <div
+            *ngFor="let section of sections.controls; let sectionIndex = index"
+            class="mb-6 border border-gray-200 rounded-lg overflow-hidden"
+            [id]="'section-' + section.get('uuid')?.value"
+          >
+            <div [formGroupName]="sectionIndex" class="p-4">
+              <!-- Section header with "Add Subsection" button -->
+              <div class="flex justify-between items-center mb-4">
+                <h3 class="text-lg font-medium">
+                  Section {{ sectionIndex + 1 }}
+                </h3>
+                <div class="flex space-x-2">
+                  <button
+                    type="button"
+                    class="p-1 text-gray-500 hover:bg-gray-100 rounded"
+                    (click)="moveUp(sections, sectionIndex)"
+                    [disabled]="sectionIndex === 0"
+                    [ngClass]="{
+                      'opacity-50 cursor-not-allowed': sectionIndex === 0,
+                    }"
+                  >
+                    <mat-icon class="h-5 w-5" aria-hidden="true"
+                      >arrow_upward</mat-icon
+                    >
+                  </button>
+                  <button
+                    type="button"
+                    class="p-1 text-gray-500 hover:bg-gray-100 rounded"
+                    (click)="moveDown(sections, sectionIndex)"
+                    [disabled]="sectionIndex === sections.length - 1"
+                    [ngClass]="{
+                      'opacity-50 cursor-not-allowed':
+                        sectionIndex === sections.length - 1,
+                    }"
+                  >
+                    <mat-icon class="h-5 w-5" aria-hidden="true"
+                      >arrow_downward</mat-icon
+                    >
+                  </button>
+                  <button
+                    type="button"
+                    class="p-1 text-red-500 hover:bg-red-50 rounded"
+                    (click)="removeSection(sectionIndex)"
+                  >
+                    <mat-icon class="h-5 w-5" aria-hidden="true"
+                      >delete</mat-icon
+                    >
+                  </button>
+                  <button
+                    type="button"
+                    class="px-3 py-1 bg-blue-100 text-blue-600 rounded-md hover:bg-blue-200 flex items-center"
+                    (click)="addSubsection(sectionIndex)"
+                  >
+                    <mat-icon class="h-4 w-4 mr-1" aria-hidden="true"
+                      >add_circle</mat-icon
+                    >
+                    Add Subsection
+                  </button>
+                </div>
+              </div>
+
+              <div class="grid grid-cols-1 md:grid-cols-3 gap-4 mb-4">
+                <div>
+                  <app-text-input
+                    [id]="'sectionTitle' + sectionIndex"
+                    label="Section Title"
+                    name="title"
+                    [form]="section"
+                    placeholder="Enter section title"
+                    class="w-full"
+                  />
+                </div>
+                <div class="relative">
+                  <app-text-input
+                    [id]="'sectionMaxScore' + sectionIndex"
+                    label="Maximum Score (optional)"
+                    name="maxScore"
+                    type="number"
+                    [form]="section"
+                    placeholder="Maximum possible score"
+                    class="w-full"
+                  />
+                  <div class="mt-1 text-xs text-gray-500 flex items-center">
+                    Leave empty to calculate automatically from fields
+                    <button
+                      type="button"
+                      class="ml-1 text-gray-400 hover:text-gray-600"
+                      [title]="
+                        'Max score must be greater than or equal to the sum of all subsection max scores'
+                      "
+                    >
+                      <mat-icon class="h-4 w-4">help_outline</mat-icon>
+                    </button>
+                  </div>
+                </div>
+                <div>
+                  <app-text-input
+                    [id]="'sectionWeight' + sectionIndex"
+                    label="Section Weight (for scoring)"
+                    name="weight"
+                    type="number"
+                    [form]="section"
+                    placeholder="Enter section weight"
+                    class="w-full"
+                  />
+                  <div class="mt-1 text-xs text-gray-500">
+                    Weight determines how much this section contributes to the
+                    total score
+                  </div>
+                </div>
+              </div>
+
+              <div class="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4"></div>
+
+              <!-- Subsections -->
+              <div formArrayName="subsections" class="mt-6">
+                <div
+                  class="border-l-4 border-blue-400 pl-4 mb-4"
+                  *ngIf="getSubsections(sectionIndex).length > 0"
+                >
+                  <h4 class="text-lg font-medium text-blue-600 mb-3">
+                    Subsections
+                  </h4>
+
+                  <div
+                    *ngFor="
+                      let subsection of getSubsections(sectionIndex).controls;
+                      let subsectionIndex = index
+                    "
+                    class="bg-blue-50 rounded-lg p-4 mb-4 border border-blue-200"
+                    [id]="'section-' + subsection.get('uuid')?.value"
+                  >
+                    <div [formGroupName]="subsectionIndex">
+                      <div class="flex justify-between items-center mb-3">
+                        <h5 class="text-md font-medium">
+                          Subsection {{ subsectionIndex + 1 }}
+                        </h5>
+                        <div class="flex space-x-2">
+                          <button
+                            type="button"
+                            class="p-1 text-gray-500 hover:bg-gray-100 rounded"
+                            (click)="
+                              moveUp(
+                                getSubsections(sectionIndex),
+                                subsectionIndex
+                              )
+                            "
+                            [disabled]="subsectionIndex === 0"
+                            [ngClass]="{
+                              'opacity-50 cursor-not-allowed':
+                                subsectionIndex === 0,
+                            }"
+                          >
+                            <mat-icon class="h-4 w-4" aria-hidden="true"
+                              >arrow_upward</mat-icon
+                            >
+                          </button>
+                          <button
+                            type="button"
+                            class="p-1 text-gray-500 hover:bg-gray-100 rounded"
+                            (click)="
+                              moveDown(
+                                getSubsections(sectionIndex),
+                                subsectionIndex
+                              )
+                            "
+                            [disabled]="
+                              subsectionIndex ===
+                              getSubsections(sectionIndex).length - 1
+                            "
+                            [ngClass]="{
+                              'opacity-50 cursor-not-allowed':
+                                subsectionIndex ===
+                                getSubsections(sectionIndex).length - 1,
+                            }"
+                          >
+                            <mat-icon class="h-4 w-4" aria-hidden="true"
+                              >arrow_downward</mat-icon
+                            >
+                          </button>
+                          <button
+                            type="button"
+                            class="p-1 text-red-500 hover:bg-red-50 rounded"
+                            (click)="
+                              removeSubsection(sectionIndex, subsectionIndex)
+                            "
+                          >
+                            <mat-icon class="h-4 w-4" aria-hidden="true"
+                              >delete</mat-icon
+                            >
+                          </button>
+                        </div>
+                      </div>
+
+                      <div class="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4">
+                        <div>
+                          <app-text-input
+                            [id]="
+                              'subsectionTitle' +
+                              sectionIndex +
+                              '-' +
+                              subsectionIndex
+                            "
+                            label="Subsection Title"
+                            name="title"
+                            [form]="subsection"
+                            placeholder="Enter subsection title"
+                            class="w-full"
+                          ></app-text-input>
+                        </div>
+                        <div>
+                          <app-text-input
+                            [id]="
+                              'subsectionWeight' +
+                              sectionIndex +
+                              '-' +
+                              subsectionIndex
+                            "
+                            label="Weight"
+                            name="weight"
+                            type="number"
+                            [form]="subsection"
+                            placeholder="Enter weight"
+                            class="w-full"
+                          ></app-text-input>
+                        </div>
+                      </div>
+
+                      <!-- Subsection Fields -->
+                      <div class="mt-4">
+                        <h6 class="font-medium text-sm text-gray-700 mb-2">
+                          Subsection Fields
+                        </h6>
+
+                        <div formArrayName="fields" class="space-y-4">
+                          <!-- Insert field button at the beginning of subsection -->
+                          <div 
+                            *ngIf="getSubsectionFields(sectionIndex, subsectionIndex).length > 0"
+                            class="text-center">
+                            <button
+                              type="button"
+                              class="px-3 py-2 bg-green-50 text-green-600 rounded-md hover:bg-green-100 border-2 border-dashed border-green-300 flex items-center mx-auto text-sm"
+                              (click)="insertFieldAtSubsection(sectionIndex, subsectionIndex, 0)"
+                              title="Insert question at the beginning of subsection"
+                            >
+                              <mat-icon class="h-4 w-4 mr-1" aria-hidden="true">add_circle_outline</mat-icon>
+                              Insert Question Here
+                            </button>
+                          </div>
+
+                          <div
+                            *ngFor="
+                              let field of getSubsectionFields(
+                                sectionIndex,
+                                subsectionIndex
+                              ).controls;
+                              let fieldIndex = index
+                            "
+                            class="space-y-2"
+                          >
+                            <!-- Existing subsection field container -->
+                            <div class="border border-gray-200 rounded-md p-4 bg-white">
+                            <div [formGroupName]="fieldIndex">
+                              <!-- Field header with controls -->
+                              <div
+                                class="flex justify-between items-center mb-3"
+                              >
+                                <h6 class="font-medium">
+                                  Field {{ fieldIndex + 1 }}
+                                </h6>
+                                <div class="flex space-x-2">
+                                  <button
+                                    type="button"
+                                    class="p-1 text-red-500 hover:bg-red-50 rounded"
+                                    (click)="
+                                      removeSubsectionField(
+                                        sectionIndex,
+                                        subsectionIndex,
+                                        fieldIndex
+                                      )
+                                    "
+                                  >
+                                    <mat-icon class="h-4 w-4" aria-hidden="true"
+                                      >delete</mat-icon
+                                    >
+                                  </button>
+                                </div>
+                              </div>
+
+                              <!-- Field properties -->
+                              <div
+                                class="grid grid-cols-1 md:grid-cols-2 gap-4 mb-3"
+                              >
+                                <div>
+                                  <app-text-input
+                                    [id]="
+                                      'subFieldLabel' +
+                                      sectionIndex +
+                                      '-' +
+                                      subsectionIndex +
+                                      '-' +
+                                      fieldIndex
+                                    "
+                                    label="Field Label"
+                                    name="label"
+                                    [form]="field"
+                                    placeholder="Enter field label"
+                                    class="w-full"
+                                  ></app-text-input>
+                                </div>
+                                <div>
+                                  <app-select
+                                    [id]="
+                                      'subFieldType' +
+                                      sectionIndex +
+                                      '-' +
+                                      subsectionIndex +
+                                      '-' +
+                                      fieldIndex
+                                    "
+                                    label="Field Type"
+                                    name="fieldType"
+                                    [form]="field"
+                                    [options]="fieldTypeOptions"
+                                    (onOptionSelected)="
+                                      onSubsectionFieldTypeChange(
+                                        sectionIndex,
+                                        subsectionIndex,
+                                        fieldIndex
+                                      )
+                                    "
+                                    class="w-full"
+                                  ></app-select>
+                                </div>
+                              </div>
+
+
+                              <!-- Field options for select/radio/checkbox -->
+                              <div
+                                *ngIf="
+                                  fieldNeedsOptions(
+                                    field.get('fieldType')?.value
+                                  )
+                                "
+                                class="mt-4 border-t border-gray-200 pt-4"
+                              >
+                                <h6
+                                  class="text-sm font-medium text-gray-700 mb-2"
+                                >
+                                  Options & Scores
+                                </h6>
+                                <button
+                                  type="button"
+                                  class="px-2 py-1 text-xs bg-blue-50 text-blue-600 rounded hover:bg-blue-100 flex items-center mb-2"
+                                  (click)="
+                                    addSubsectionFieldOption(
+                                      sectionIndex,
+                                      subsectionIndex,
+                                      fieldIndex
+                                    )
+                                  "
+                                >
+                                  <mat-icon
+                                    class="h-3 w-3 mr-1"
+                                    aria-hidden="true"
+                                    >add</mat-icon
+                                  >
+                                  Add Option
+                                </button>
+
+                                <!-- Option fields -->
+                                <div formArrayName="options" class="space-y-2">
+                                  <div
+                                    *ngFor="
+                                      let option of getSubsectionFieldOptions(
+                                        sectionIndex,
+                                        subsectionIndex,
+                                        fieldIndex
+                                      ).controls;
+                                      let optionIndex = index
+                                    "
+                                    class="flex items-center space-x-2"
+                                  >
+                                    <div
+                                      [formGroupName]="optionIndex"
+                                      class="flex flex-1 space-x-2"
+                                    >
+                                      <app-text-input
+                                        label="Option Label"
+                                        name="label"
+                                        [form]="option"
+                                        placeholder="Option Label"
+                                        class="flex-1"
+                                      />
+                                      <app-text-input
+                                        label="Option Value"
+                                        name="value"
+                                        [form]="option"
+                                        placeholder="Option Value"
+                                        class="flex-1"
+                                      />
+                                      <app-text-input
+                                        label="Score"
+                                        name="score"
+                                        type="number"
+                                        [form]="option"
+                                        placeholder="Score"
+                                        class="w-24"
+                                        [ngClass]="{
+                                          'border-red-500':
+                                            option.get('score')?.errors
+                                              ?.exceedsMaxScore,
+                                        }"
+                                      />
+                                      <div
+                                        *ngIf="
+                                          option.get('score')?.errors
+                                            ?.exceedsMaxScore
+                                        "
+                                        class="text-xs text-red-600"
+                                      >
+                                        Score exceeds section max
+                                      </div>
+                                      <button
+                                        type="button"
+                                        class="p-1 text-red-500 hover:bg-red-50 rounded"
+                                        (click)="
+                                          removeSubsectionFieldOption(
+                                            sectionIndex,
+                                            subsectionIndex,
+                                            fieldIndex,
+                                            optionIndex
+                                          )
+                                        "
+                                      >
+                                        <mat-icon
+                                          class="h-4 w-4"
+                                          aria-hidden="true"
+                                          >delete</mat-icon
+                                        >
+                                      </button>
+                                    </div>
+                                  </div>
+                                </div>
+                              </div>
+
+                              <!-- Conditional Logic Configuration for Subsection Fields -->
+                              <app-conditional-logic
+                                [formGroup]="field"
+                                [availableFields]="getAllAvailableFields()"
+                                [availableSections]="getAllAvailableSections()"
+                                [currentFieldUuid]="field.get('uuid')?.value"
+                              ></app-conditional-logic>
+                            </div>
+                            </div>
+
+                            <!-- Insert field button after this subsection field -->
+                            <div class="text-center">
+                              <button
+                                type="button"
+                                class="px-3 py-2 bg-green-50 text-green-600 rounded-md hover:bg-green-100 border-2 border-dashed border-green-300 flex items-center mx-auto text-sm"
+                                (click)="insertFieldAtSubsection(sectionIndex, subsectionIndex, fieldIndex + 1)"
+                                title="Insert question after this one"
+                              >
+                                <mat-icon class="h-4 w-4 mr-1" aria-hidden="true">add_circle_outline</mat-icon>
+                                Insert Question Here
+                              </button>
+                            </div>
+                          </div>
+                        </div>
+
+                        <!-- Add Field Button -->
+                        <div class="mt-3">
+                          <button
+                            type="button"
+                            class="px-3 py-1 bg-gray-100 text-gray-700 rounded-md hover:bg-gray-200 inline-flex items-center"
+                            (click)="
+                              addFieldToSubsection(
+                                sectionIndex,
+                                subsectionIndex
+                              )
+                            "
+                          >
+                            <mat-icon class="h-4 w-4 mr-1" aria-hidden="true"
+                              >add</mat-icon
+                            >
+                            Add Field to Subsection
+                          </button>
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+
+                <!-- Add Subsection Button -->
+                <button
+                  type="button"
+                  class="mt-2 px-4 py-2 bg-blue-100 text-blue-600 rounded-md hover:bg-blue-200 inline-flex items-center"
+                  (click)="addSubsection(sectionIndex)"
+                >
+                  <mat-icon class="h-4 w-4 mr-2" aria-hidden="true"
+                    >add_circle</mat-icon
+                  >
+                  Add Subsection
+                </button>
+              </div>
+
+              <!-- Fields -->
+              <div formArrayName="fields" class="space-y-4 mt-4">
+                <!-- Insert field button at the beginning -->
+                <div 
+                  *ngIf="getFields(sectionIndex).length > 0"
+                  class="text-center">
+                  <button
+                    type="button"
+                    class="px-3 py-2 bg-green-50 text-green-600 rounded-md hover:bg-green-100 border-2 border-dashed border-green-300 flex items-center mx-auto text-sm"
+                    (click)="insertFieldAt(sectionIndex, 0)"
+                    title="Insert question at the beginning"
+                  >
+                    <mat-icon class="h-4 w-4 mr-1" aria-hidden="true">add_circle_outline</mat-icon>
+                    Insert Question Here
+                  </button>
+                </div>
+
+                <div
+                  *ngFor="
+                    let field of getFields(sectionIndex).controls;
+                    let fieldIndex = index
+                  "
+                  class="space-y-2"
+                >
+                  <!-- Existing field container -->
+                  <div class="border border-gray-200 rounded-md p-4">
+                  <div [formGroupName]="fieldIndex">
+                    <!-- Field header with controls -->
+                    <div class="flex justify-between items-center mb-3">
+                      <h5 class="font-medium">Field {{ fieldIndex + 1 }}</h5>
+                      <div class="flex space-x-2">
+                        <button
+                          type="button"
+                          class="p-1 text-gray-500 hover:bg-gray-100 rounded"
+                          (click)="moveUp(getFields(sectionIndex), fieldIndex)"
+                          [disabled]="fieldIndex === 0"
+                          [ngClass]="{
+                            'opacity-50 cursor-not-allowed': fieldIndex === 0,
+                          }"
+                        >
+                          <mat-icon class="h-4 w-4" aria-hidden="true"
+                            >arrow_upward</mat-icon
+                          >
+                        </button>
+                        <button
+                          type="button"
+                          class="p-1 text-gray-500 hover:bg-gray-100 rounded"
+                          (click)="
+                            moveDown(getFields(sectionIndex), fieldIndex)
+                          "
+                          [disabled]="
+                            fieldIndex === getFields(sectionIndex).length - 1
+                          "
+                          [ngClass]="{
+                            'opacity-50 cursor-not-allowed':
+                              fieldIndex === getFields(sectionIndex).length - 1,
+                          }"
+                        >
+                          <mat-icon class="h-4 w-4" aria-hidden="true"
+                            >arrow_downward</mat-icon
+                          >
+                        </button>
+                        <button
+                          type="button"
+                          class="p-1 text-red-500 hover:bg-red-50 rounded"
+                          (click)="removeField(sectionIndex, fieldIndex)"
+                        >
+                          <mat-icon class="h-4 w-4" aria-hidden="true"
+                            >delete</mat-icon
+                          >
+                        </button>
+                      </div>
+                    </div>
+
+                    <!-- Field properties -->
+                    <div class="grid grid-cols-1 md:grid-cols-2 gap-4 mb-3">
+                      <div>
+                        <app-text-input
+                          [id]="'fieldLabel' + sectionIndex + '-' + fieldIndex"
+                          label="Field Label"
+                          name="label"
+                          [form]="field"
+                          placeholder="Enter field label"
+                          class="w-full"
+                        ></app-text-input>
+                      </div>
+                      <div>
+                        <app-select
+                          [id]="'fieldType' + sectionIndex + '-' + fieldIndex"
+                          label="Field Type"
+                          name="fieldType"
+                          [form]="field"
+                          [options]="fieldTypeOptions"
+                          (onOptionSelected)="
+                            onFieldTypeChange(sectionIndex, fieldIndex)
+                          "
+                          class="w-full"
+                        ></app-select>
+                      </div>
+                    </div>
+
+                    <div class="grid grid-cols-1 md:grid-cols-2 gap-4 mb-3">
+                      <div>
+                        <app-text-input
+                          [id]="'placeholder' + sectionIndex + '-' + fieldIndex"
+                          label="Placeholder"
+                          name="placeholder"
+                          [form]="field"
+                          placeholder="Enter placeholder text"
+                          class="w-full"
+                        ></app-text-input>
+                      </div>
+                      <div>
+                        <app-text-input
+                          [id]="'helpText' + sectionIndex + '-' + fieldIndex"
+                          label="Help Text"
+                          name="helpText"
+                          [form]="field"
+                          placeholder="Enter help text"
+                          class="w-full"
+                        ></app-text-input>
+                      </div>
+                    </div>
+
+                    <div class="mb-3">
+                      <app-checkbox
+                        label="Required Field"
+                        name="required"
+                        [form]="field"
+                        class="flex items-center"
+                      ></app-checkbox>
+                    </div>
+
+                    <!-- Field options for select/radio/checkbox -->
+                    <div
+                      *ngIf="fieldNeedsOptions(field.get('fieldType')?.value)"
+                      class="mt-4 border-t border-gray-200 pt-4"
+                    >
+                      <div class="flex justify-between items-center mb-3">
+                        <h6 class="text-sm font-medium text-gray-700">
+                          Options & Scores
+                        </h6>
+                        <button
+                          type="button"
+                          class="px-2 py-1 text-xs bg-blue-50 text-blue-600 rounded hover:bg-blue-100 flex items-center"
+                          (click)="addOption(sectionIndex, fieldIndex)"
+                        >
+                          <mat-icon class="h-3 w-3 mr-1" aria-hidden="true"
+                            >add</mat-icon
+                          >
+                          Add Option
+                        </button>
+                      </div>
+
+                      <!-- Option fields with scores -->
+                      <div formArrayName="options" class="space-y-2">
+                        <div
+                          *ngFor="
+                            let option of getOptions(sectionIndex, fieldIndex)
+                              .controls;
+                            let optionIndex = index
+                          "
+                          class="flex items-center space-x-2"
+                        >
+                          <div
+                            [formGroupName]="optionIndex"
+                            class="flex flex-1 space-x-2"
+                          >
+                            <app-text-input
+                              label="Option Label"
+                              name="label"
+                              [form]="option"
+                              placeholder="Option Label"
+                              class="flex-1"
+                            ></app-text-input>
+                            <app-text-input
+                              label="Option Value"
+                              name="value"
+                              [form]="option"
+                              placeholder="Option Value"
+                              class="flex-1"
+                            ></app-text-input>
+                            <app-text-input
+                              label="Score"
+                              name="score"
+                              type="number"
+                              [form]="option"
+                              placeholder="Score"
+                              class="w-24"
+                            ></app-text-input>
+                            <button
+                              type="button"
+                              class="p-1 text-red-500 hover:bg-red-50 rounded"
+                              (click)="
+                                removeOption(
+                                  sectionIndex,
+                                  fieldIndex,
+                                  optionIndex
+                                )
+                              "
+                            >
+                              <mat-icon class="h-4 w-4" aria-hidden="true"
+                                >delete</mat-icon
+                              >
+                            </button>
+                          </div>
+                        </div>
+                      </div>
+                    </div>
+
+                    <!-- Conditional Logic Configuration -->
+                    <app-conditional-logic
+                      [formGroup]="field"
+                      [availableFields]="getAllAvailableFields()"
+                      [availableSections]="getAllAvailableSections()"
+                      [currentFieldUuid]="field.get('uuid')?.value"
+                    ></app-conditional-logic>
+                  </div>
+                  </div>
+
+                  <!-- Insert field button after this field -->
+                  <div class="text-center">
+                    <button
+                      type="button"
+                      class="px-3 py-2 bg-green-50 text-green-600 rounded-md hover:bg-green-100 border-2 border-dashed border-green-300 flex items-center mx-auto text-sm"
+                      (click)="insertFieldAt(sectionIndex, fieldIndex + 1)"
+                      title="Insert question after this one"
+                    >
+                      <mat-icon class="h-4 w-4 mr-1" aria-hidden="true">add_circle_outline</mat-icon>
+                      Insert Question Here
+                    </button>
+                  </div>
+                </div>
+
+                <div class="text-center">
+                  <button
+                    type="button"
+                    class="px-3 py-1 bg-gray-100 text-gray-700 rounded-md hover:bg-gray-200 flex items-center mx-auto"
+                    (click)="addField(sectionIndex)"
+                  >
+                    <mat-icon class="h-4 w-4 mr-1" aria-hidden="true"
+                      >add</mat-icon
+                    >
+                    Add Field
+                  </button>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <div class="text-center mb-6">
+            <button
+              type="button"
+              class="px-4 py-2 bg-blue-50 text-blue-600 rounded-md hover:bg-blue-100 flex items-center mx-auto"
+              (click)="addSection()"
+            >
+              <mat-icon class="h-5 w-5 mr-1" aria-hidden="true"
+                >add_circle</mat-icon
+              >
+              Add Section
+            </button>
+          </div>
+        </div>
+
+        <div class="flex justify-between">
+          <button
+            type="button"
+            class="px-4 py-2 bg-gray-200 text-gray-700 rounded-md hover:bg-gray-300"
+            routerLink="/forms"
+          >
+            Cancel
+          </button>
+          <button
+            type="submit"
+            class="px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700"
+            [disabled]="formBuilderForm.invalid"
+            [ngClass]="{
+              'opacity-50 cursor-not-allowed': formBuilderForm.invalid,
+            }"
+          >
+            {{ formId ? "Update Form" : "Create Form" }}
+          </button>
+        </div>
+      </form>
+      <!--<pre>{{ getFormErrors() | json }}</pre>-->
+      <!--<pre>{{ formBuilderForm.value | json }}</pre>-->
+    </div>
+  </div>
+</div>
+
+<!-- Confirm Dialog -->
+<app-confirm-dialog
+  [open]="confirmDialogOpen"
+  [title]="confirmDialogTitle"
+  [message]="confirmDialogMessage"
+  [confirmMessage]="'CONFIRM'"
+  (onClose)="onConfirmDialogClose($event)"
+  (onConfirm)="onConfirmDialogConfirm()"
+></app-confirm-dialog>
